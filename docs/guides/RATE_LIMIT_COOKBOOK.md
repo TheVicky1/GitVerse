@@ -57,17 +57,17 @@ Back off on a 403 or 429, following GitHub's guidance (a sketch, not code GitVer
 
 ### It reads most badge data from github.com pages, not the REST API
 
-`internal/official/official.go` documents that the earned badges, tiers, unlock dates and milestone history are not in GitHub's API. They come from the public profile page and from `/users/<user>/achievements/<slug>/detail` on `github.com`. The client requests `https://github.com` paths, not `api.github.com`, so these calls do not go through the REST API headers above. GitVerse does not assume they are unlimited: any non-200 response (other than a 404 for a missing user) is returned as an error `HTTP <status>`.
+`internal/official/official.go` documents that the earned badges, tiers, unlock dates and milestone history are not in GitHub's API. They come from the public profile page and from `/users/<user>/achievements/<slug>/detail` on `github.com`. The client requests `https://github.com` paths, not `api.github.com`, so these calls do not go through the REST API headers above. GitVerse does not assume they are unlimited: in `official.go`, a 404 is treated as "not found" and any other non-200 response is returned as an error `GET <path>: HTTP <status>`. A failure to read the profile fails the whole report; a failure on one badge's detail page is recorded for that badge only (`fetchDetails`).
 
 To stay polite, `internal/report/report.go` fetches the badge detail pages with at most 4 requests in flight (the `sem` channel in `fetchDetails`).
 
 ### REST and GraphQL calls
 
-`internal/counters/counters.go` makes the API calls: merged pull requests (search), repositories and stars (REST), and accepted answers, sponsorships and highlight flags (GraphQL).
+`internal/counters/counters.go` makes the API calls: merged pull requests (a GraphQL search with a token, the REST search endpoint without one), repositories and stars (REST), and accepted answers, sponsorships and highlight flags (GraphQL).
 
-- Fewer calls by design: merged PRs are counted once per report (`mergedPRs` uses a `sync.Once`),; with a token the merged-PR search lists 100 results per page, and the public fallback asks for one result (`per_page=1`) because it only needs the total.
-- Without a token (public fallback): merged PR and star counts still work, GraphQL-only data is skipped (`Facts` returns nil). A 403 or 429 from the API becomes `ErrRateLimited`: "GitHub's API rate limit for anonymous use was hit; run `gh auth login`". In the report, that failure appears as a note on the affected badge ("could not count: ...") rather than failing the whole report.
-- The CLI uses your existing `gh auth login` token (`counters.New`). The web handlers use a server-side bot token for public checks, or the signed-in user's token for a private check (`counters.NewWithToken`).
+- Fewer calls by design: merged PRs are counted once per report (`mergedPRs` uses a `sync.Once`); with a token the merged-PR search lists 100 results per page, and the public fallback asks for one result (`per_page=1`) because it only needs the total.
+- Without a token (public fallback): merged PR and star counts still work, GraphQL-only data is skipped (`Facts` returns nil). A 403 or 429 from the API becomes `ErrRateLimited`: "GitHub's API rate limit for anonymous use was hit; run `gh auth login`". In the report, a failed counter (merged PRs, stars, accepted answers) appears as a note on the affected badge ("could not count: ...") rather than failing the whole report.
+- The CLI uses the token `gh auth login` stored, or `GH_TOKEN`, and falls back to the public client when there is none (`counters.New`). The web handlers use a server-side bot token for public checks, or the signed-in user's token for a private check (`counters.NewWithToken`).
 
 ### Caching on the web
 
@@ -80,13 +80,13 @@ GitVerse has no in-memory cache of star or follower counts in Go code. Caching i
 | `/api/stars` | `public, s-maxage=60, stale-while-revalidate=300` | `web/handlers.go` |
 | `/api/private` | `no-store` | `web/handlers.go` |
 
-`/api/stars` makes one request for the repository's `stargazers_count` and, if GitHub does not answer with 200 or the body does not parse, returns a built-in fallback value instead of an error.
+`/api/stars` makes one request for the repository's `stargazers_count` and, if the request fails, GitHub does not answer with 200 or the body does not parse, returns a hardcoded fallback count (`3` in `Stars`) instead of an error.
 
 ### Failing gracefully on the web
 
-`Result` maps a failure to a message and status instead of crashing: a timeout (the report has a 50 second budget, `Timeout` in `FromEnv`) answers 504 and suggests the CLI; any other GitHub failure answers 502 with "GitHub did not answer. Please try again in a minute."
+`Result` maps a failure to a message and status instead of crashing: a timeout (the report has a 50 second budget, `Timeout` in `FromEnv`) answers 504 and suggests the CLI; an unknown user answers 404; an internal failure answers 500; any other error from the report answers 502 with "GitHub did not answer. Please try again in a minute."
 
-GitVerse does not retry and does not implement exponential backoff for failed GitHub calls in the code shown above.
+GitVerse does not retry and does not implement exponential backoff for failed GitHub calls anywhere in the Go code (a search for retry or backoff logic finds none).
 
 ## Practical advice
 

@@ -21,11 +21,11 @@ Scope: the Go handlers in `web/` (`oauth.go`, `handlers.go`, `headers.go`), `int
 6. **Revoke.** Right after a successful exchange, the handler defers a revoke: `DELETE /applications/{client_id}/token` with the token in the body, authenticated with the client ID and secret. It runs on a fresh context with its own 8 second budget, so it runs even if the request context has timed out or the client left. The variable holding the token is then set to an empty string.
 7. **Respond.** The response is the rendered report fragment with `Cache-Control: no-store`, `X-Robots-Tag: noindex` and `Referrer-Policy: no-referrer`.
 
-The token is never written to a response, to a cookie, or to a log line by the handler code: log statements print error types or fixed messages (for example `private: %T`), and the comments in `handlers.go` state that panic values and errors are not logged.
+The token is never written to a response, to a cookie, or to a log line by the handler code: log statements print error types or fixed messages (for example `private: %T`), and the comments in `handlers.go` say that only error or panic types are logged, never their values.
 
 Limits of this guarantee, from the code:
 
-- If the revoke call fails (network error or any status other than 204), the failure is logged and the token is **not** retried; it stays valid until GitHub expires or the user revokes it.
+- If the revoke call fails (network error or any status other than 204), the failure is logged and the token is **not** retried; it stays valid until it is revoked by the user or by GitHub; how long GitHub keeps such a token is outside this repository.
 - Revoking deletes the token, but the app's grant stays, so the next sign-in skips the consent screen (comment on `Revoke`).
 - The requested scope is `repo`, which is broad. Consider that when deciding whether to sign in.
 - Memory is not wiped: setting the variable to `""` drops the reference but Go gives no guarantee about when memory is cleared. The code does not claim otherwise.
@@ -37,11 +37,11 @@ Limits of this guarantee, from the code:
 | :--- | :--- | :--- |
 | **Login CSRF / forged callback** | State cookie is HMAC-signed with `STATE_SECRET`, compared in constant time with the returned nonce, expires after 10 minutes and is cleared on use. The cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` except on localhost. | Compromise of `STATE_SECRET` |
 | **Authorization code interception** | PKCE with S256: the verifier lives only in the signed cookie and is sent on exchange. `callback.js` strips the code from the URL; `/auth/callback` is served with `Referrer-Policy: no-referrer` and `Cache-Control: no-store`. | |
-| **Token or secret sent to another host via redirect** | The GitHub HTTP client refuses to follow redirects (`CheckRedirect` returns `http.ErrUseLastResponse`) and has a 20 second timeout. | |
-| **Token persisting after use** | Deferred revoke (above); `no-store` on the response; no code path stores the token. | Revoke failures (logged only) |
+| **Token or secret sent to another host via redirect** | The `GitHub` HTTP client in `oauth.go` refuses to follow redirects (`CheckRedirect` returns `http.ErrUseLastResponse`) and has a 20 second timeout. | |
+| **Token persisting after use** | Deferred revoke (above); `no-store` on the response; the handler code does not store the token. | Revoke failures (logged only) |
 | **Token written to logs** | `counters.NewWithToken` sets `LogIgnoreEnv: true` so `GH_DEBUG` cannot enable request logging; handlers log types and fixed messages only. | Platform-level request logging |
 | **Process crash skipping revoke** | A panic inside report building is recovered and reported as a type name, so in-flight requests' deferred revokes still run (comment in `build`). | |
-| **XSS** | Content-Security-Policy on every response: `default-src 'self'`, `script-src 'self' https://www.googletagmanager.com` (no `'unsafe-inline'`), `style-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`. Also `X-Content-Type-Options: nosniff`. Result HTML comes from Go's `html/template` (per the comment in `callback.js`). | `callback.js` inserts the server HTML with `innerHTML`, so safety relies on the template escaping |
+| **XSS** | Content-Security-Policy on every response: `default-src 'self'`, `script-src 'self' https://www.googletagmanager.com` (no `'unsafe-inline'`), `style-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`. Also `X-Content-Type-Options: nosniff`. Result HTML is rendered with Go's `html/template` (`internal/webui`; `callback.js` also says so in a comment). | `callback.js` inserts the server HTML with `innerHTML`, so safety relies on the template escaping |
 | **Oversized or wrong-type requests** | `/api/private` accepts only POST with `application/x-www-form-urlencoded` and a 4 KiB body limit. | |
 | **Clickjacking** | `frame-ancestors 'none'` in the CSP. | |
 | **Third-party requests** | CSP `connect-src` and `img-src` list the allowed hosts, including Google Analytics and Tag Manager. | |

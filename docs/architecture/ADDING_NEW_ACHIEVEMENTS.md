@@ -7,7 +7,7 @@ This guide walks through adding a badge that GitHub has released to `internal/ca
 - `internal/catalog/catalog.go` holds the `Achievements` slice (display order), the `Highlights` slice, and helpers such as `BySlug` and `KindTitle`.
 - `internal/catalog/images.go` holds the `Images` map (slug to badge art URLs) and the `Image(slug, tier)` helper.
 - `internal/report` builds a report row for every catalog entry, and `internal/counters` supplies live counts.
-- `cmd/gendocs` reads the catalog to generate the README badge table, `site/achievements.json`, `site/llms.txt`, `site/llms-full.txt`, the sitemap and the Markdown pages.
+- `cmd/gendocs` reads the catalog to generate the README badge table, `site/achievements.json`, `site/llms.txt`, `site/llms-full.txt`, the sitemap, the site pages and the Markdown pages under `web/markdown/`.
 
 A badge that GitHub adds and the catalog does not know yet still appears in the CLI, because earned badges are read from the profile (see the package comment in `catalog.go`). Adding it to the catalog gives it its description, tiers, FAQ and art.
 
@@ -74,7 +74,7 @@ Guidelines taken from the existing code:
 
 Add an entry to the `Images` map in `internal/catalog/images.go`, in the order default, bronze, silver, gold (a single-tier badge has one URL):
 
-- Earnable, retired and internal badges use GitHub's own art from `https://github.githubassets.com/assets/<slug>-<tier>-<hash>.png`. The images are loaded from GitHub's CDN and are never copied into the repository.
+- Earnable, retired and internal badges use GitHub's own art from `https://github.githubassets.com/assets/<slug>-<tier>-<hash>.png`. The catalog stores these as URLs, not as image files.
 - `Disabled` badges use the community copies under `communityArt`, which is pinned to one commit.
 
 `Image(slug, tier)` returns the default art for tier 0 or 1 and clamps to the last image above that. `internal/catalog/images_test.go` checks that every catalog badge has art for every tier, with the expected URL prefix for its `Kind`.
@@ -96,7 +96,7 @@ Do this only when the public API can actually count what GitHub counts; the exis
 go run ./cmd/gendocs
 ```
 
-This rewrites the README sections, `docs/` images, `site/` files and the Markdown twins from the catalog.
+This rewrites the README sections, the SVGs under `docs/`, the `site/` files, `vercel.json` and the Markdown pages under `web/markdown/` from the catalog.
 
 ### 5. Verify
 

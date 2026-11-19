@@ -47,7 +47,7 @@ A lightweight blue [Shields.io](https://shields.io) badge that links to your Git
 
 **Preview:**
 
-[![GitHub Achievements](https://img.shields.io/badge/GitHub-Achievements-blue?logo=github)](https://mygitverse.vercel.app/result?u=YOUR_USERNAME)
+[![GitHub Achievements](https://img.shields.io/badge/GitHub-Achievements-blue?logo=github)](https://mygitverse.vercel.app/result?u=octocat)
 
 You can change the text and color by editing the badge URL. The format is `https://img.shields.io/badge/<LEFT_TEXT>-<RIGHT_TEXT>-<COLOR>?logo=github`, for example:
 
@@ -69,7 +69,7 @@ A larger call-to-action button that uses the GitVerse `check-button.svg` image:
 
 **Preview:**
 
-<a href="https://mygitverse.vercel.app/result?u=YOUR_USERNAME">
+<a href="https://mygitverse.vercel.app/result?u=octocat">
   <img src="https://raw.githubusercontent.com/TheVicky1/GitVerse/main/docs/check-button.svg" alt="Track My Achievements on GitVerse" width="400" />
 </a>
 

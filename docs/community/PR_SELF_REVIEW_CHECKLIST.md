@@ -46,65 +46,23 @@
 
 
 
-*## 3. Technical Verification Checklist*
+## 3. Technical Verification Checklist
 
+Run the checks relevant to your contribution. You do not need to run every check for documentation-only changes.
 
+**For Go code changes** (requires Go to be installed):
 
-*Complete the relevant checks when your contribution modifies code, templates, or generated documentation.*
+- [ ] Run `gofmt -l .` and ensure all Go files are formatted.
+- [ ] Run `go test ./...` and confirm that all tests pass.
+- [ ] Run `go run ./cmd/gendocs -check` when generated documentation is affected.
 
+**For JavaScript changes** (requires Node.js):
 
+- [ ] Run `node --test internal/webui/jstest/*.test.mjs` when web UI files are modified.
 
-*- \[ ] Run `gofmt -l .` and ensure all Go files are formatted.*
+**For documentation-only changes:**
 
-*- \[ ] Run `go test ./...` and confirm that all tests pass.*
+- [ ] Run `git diff --check` to check for whitespace errors.
+- [ ] Verify Markdown formatting, links, and file paths.
 
-*- \[ ] Run `go run ./cmd/gendocs -check` and confirm that generated documentation has no drift.*
-
-*- \[ ] Run relevant JavaScript tests if web UI files were modified: `node --test internal/webui/jstest/\*.test.mjs`.*
-
-*- \[ ] Review command output and resolve any errors related to your changes.*
-
-
-
-*For documentation-only contributions, run the checks relevant to the files you changed.*
-
-
-
-*## 4. Writing a Great PR Description*
-
-
-
-*- \[ ] Provide a clear and descriptive pull request title.*
-
-*- \[ ] Summarize what you changed.*
-
-*- \[ ] Explain why the change is useful.*
-
-*- \[ ] Link the related issue using `Closes #<number>`.*
-
-*- \[ ] Include screenshots or previews when relevant to UI or documentation changes.*
-
-*- \[ ] Mention the tests or verification steps you completed.*
-
-*- \[ ] Disclose any known limitations or unfinished work.*
-
-*- \[ ] Ensure the description is clear and easy for maintainers to review.*
-
-
-
-*## Final Review*
-
-
-
-*- \[ ] All intended changes are committed and pushed to your branch.*
-
-*- \[ ] No unrelated files or accidental changes are included.*
-
-*- \[ ] The pull request targets the `main` branch.*
-
-*- \[ ] The pull request is ready for maintainer review.*
-
-
-
-*Thank you for contributing to GitVerse! Every thoughtful contribution helps make the project better for the community.*
-
+- [ ] Review command output and resolve any errors related to your changes.

@@ -60,7 +60,7 @@ Create a `.vscode/launch.json` file with the following configurations to debug `
 ```
 
 * **CLI Debugging (`Debug GitVerse`):** Supplying `"args": ["torvalds"]` targets a public profile. If you omit `args` to check your own profile, you must first be logged in via GitHub CLI (`gh auth login`).
-* **DevServer Debugging (`Debug DevServer`):** Setting `"cwd": "${workspaceFolder}"` ensures the server locates `.env.local` and `site/` in the repository root rather than inside `cmd/devserver/`. Before launching `Debug DevServer`, create a `.env.local` file in the repository root with your local dev OAuth credentials (`GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and `STATE_SECRET`) as expected by `cmd/devserver/main.go`.
+* **DevServer Debugging (`Debug DevServer`):** Setting `"cwd": "${workspaceFolder}"` ensures the server locates `.env.local` and `site/` in the repository root rather than inside `cmd/devserver/`. Before launching `Debug DevServer`, create a `.env.local` file in the repository root with all required variables expected by `cmd/devserver/main.go` and `web.FromEnv()`: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GH_BOT_TOKEN`, and `STATE_SECRET` (`STATE_SECRET` must be at least 32 bytes, e.g. generated with `openssl rand -base64 32`).
 
 ## Running Tests
 
